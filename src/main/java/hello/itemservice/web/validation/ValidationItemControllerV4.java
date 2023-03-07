@@ -2,6 +2,8 @@ package hello.itemservice.web.validation;
 
 import hello.itemservice.domain.item.Item;
 import hello.itemservice.domain.item.ItemRepository;
+import hello.itemservice.web.validation.form.ItemSaveForm;
+import hello.itemservice.web.validation.form.ItemUpdateForm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -42,15 +44,12 @@ public class ValidationItemControllerV4 {
     }
 
     @PostMapping("/add")
-    public String  addItem(@Validated @ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes) {
+    public String  addItem(@Validated @ModelAttribute("item") ItemSaveForm form, BindingResult bindingResult, RedirectAttributes redirectAttributes) {
 
-//        List<FieldError> fieldErrors = bindingResult.getFieldErrors();
-//        for (FieldError fieldError : fieldErrors) {
-//            System.out.println(fieldError.getField());
-//        }
+        // modelAttribute -> "item"지정 안 해주면 itemSaveForm이름으로 담김
 
-        if (item.getPrice() != null && item.getQuantity() != null) {
-            int resultPrice = item.getPrice() * item.getQuantity();
+        if (form.getPrice() != null && form.getQuantity() != null) {
+            int resultPrice = form.getPrice() * form.getQuantity();
             if (resultPrice < 10000) {
                 bindingResult.reject("totalPriceMin", new Object[]{1000, resultPrice}, null);
             }
@@ -62,7 +61,7 @@ public class ValidationItemControllerV4 {
         }
 
         //성공 로직
-        Item savedItem = itemRepository.save(item);
+        Item savedItem = itemRepository.save(new Item(form.getItemName(), form.getPrice(), form.getQuantity()));
         redirectAttributes.addAttribute("itemId", savedItem.getId());
         redirectAttributes.addAttribute("status", true);
         return "redirect:/validation/v4/items/{itemId}";
@@ -85,11 +84,11 @@ public class ValidationItemControllerV4 {
     }
 
     @PostMapping("/{itemId}/edit")
-    public String edit(@PathVariable Long itemId, @Validated @ModelAttribute Item item, BindingResult bindingResult) {
-        if (item.getPrice() != null && item.getQuantity() != null) {
-            int resultPrice = item.getPrice() * item.getQuantity();
+    public String edit(@PathVariable Long itemId, @Validated @ModelAttribute("item") ItemUpdateForm form, BindingResult bindingResult) {
+        if (form.getPrice() != null && form.getQuantity() != null) {
+            int resultPrice = form.getPrice() * form.getQuantity();
             if (resultPrice < 10000) {
-                bindingResult.reject("totalPriceMin", new Object[]{1000, resultPrice}, null);
+                bindingResult.reject("totalPriceMin", new Object[]{10000, resultPrice}, null);
             }
         }
 
@@ -98,7 +97,7 @@ public class ValidationItemControllerV4 {
             return "validation/v4/editForm";
         }
 
-        itemRepository.update(itemId, item);
+        itemRepository.update(itemId, new Item(form.getItemName(), form.getPrice(), form.getQuantity()));
         return "redirect:/validation/v4/items/{itemId}";
     }
 
